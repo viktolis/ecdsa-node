@@ -7,9 +7,9 @@ app.use(cors());
 app.use(express.json());
 
 const balances = {
-  "0x1": 100,
-  "0x2": 50,
-  "0x3": 75,
+  "7af7dd9ea47f263dba4141c4b4e51c36872f6efa": 100,
+  "a748285f74a207508c83819d0cfcdd2dd5681440": 50,
+  "23179a8c6c10fc2ea7a1998708cf94641634bc83": 75,
 };
 
 app.get("/balance/:address", (req, res) => {
@@ -19,7 +19,19 @@ app.get("/balance/:address", (req, res) => {
 });
 
 app.post("/send", (req, res) => {
-  const { sender, recipient, amount } = req.body;
+  const secp = require("ethereum-cryptography/secp256k1");
+  const keccak256 =  require("ethereum-cryptography/keccak");
+  const utils = require("ethereum-cryptography/utils");
+
+  const { data, signature, publicKey } = req.body;
+  const {sender, recipient, amount} = data
+
+  const hash = keccak256.keccak256(utils.utf8ToBytes(JSON.stringify(data)));
+  const isSigned = secp.secp256k1.verify(signature, hash, publicKey);
+
+  if(!isSigned){
+    res.status(400).send({ message: 'Data is malformed, you cant transfer requested amount' });
+  }
 
   setInitialBalance(sender);
   setInitialBalance(recipient);
